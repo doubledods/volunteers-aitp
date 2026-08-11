@@ -83,11 +83,12 @@ issue_cert() {
     # Stop containers if running
     if docker compose -f "$PROJECT_DIR/docker-compose.yml" ps --quiet 2>/dev/null | grep -q .; then
         echo "Stopping containers..."
-        su - "$(stat -c '%U' "$PROJECT_DIR")" -c "cd $PROJECT_DIR && docker compose down"
+        OWNER="$(stat -c '%U' "$PROJECT_DIR")"
+        su - "$OWNER" -c "cd $PROJECT_DIR && docker compose -f docker-compose.yml -f docker-compose.production.yml down 2>/dev/null || docker compose down"
     fi
 
     echo "Running certbot..."
-    certbot certonly --standalone $CERTBOT_DOMAINS
+    certbot certonly --standalone --expand $CERTBOT_DOMAINS
 
     echo -e "${GREEN}Certificate issued successfully.${NC}"
 }
