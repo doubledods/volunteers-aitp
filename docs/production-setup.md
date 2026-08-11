@@ -22,6 +22,12 @@ adduser voldb --disabled-password --gecos ""
 usermod -aG docker voldb
 ```
 
+`--disabled-password` means the account has no password to log in with; you reach it by `su - voldb` from root, or over SSH with a key. `--gecos ""` skips the interactive full-name / phone prompts, which are meaningless for a service account.
+
+**This account is intentionally not given sudo.** It runs the PHP process, so if the application is ever compromised, an attacker landing as `voldb` should not have an easy path to root. Anything needing root — installing packages, issuing certificates, editing crontabs — is done from a separate root login instead.
+
+Note that `voldb` is added to the `docker` group, which is itself effectively root-equivalent on most systems (a member can mount the host filesystem into a container). It's a real trade-off, accepted here so the application owner can manage its own containers. If you want to close that gap, look into rootless Docker or a socket proxy.
+
 Log out and back in (or reboot) for the docker group membership to take effect, then switch to the new user:
 
 ```sh
@@ -149,33 +155,62 @@ SITE_URL=https://denverburners.playa.software
 
 ### Issue Certificate and Enable HTTPS
 
-The included helper script reads `SSL_DOMAINS` from `.env`, issues the certificate, generates the nginx production config, and starts the containers with HTTPS:
+Certificate issuance needs root, because certbot writes to `/etc/letsencrypt`. The `voldb` account is deliberately unprivileged and has **no sudo access** — since it runs the PHP process, keeping it unable to escalate limits the damage if the application is ever compromised. So run this part from a root shell rather than with `sudo`.
+
+**As root:**
 
 ```sh
-sudo ./scripts/ssl-setup.sh
+cd /home/voldb/volunteers
+./scripts/ssl-setup.sh
 ```
 
-This runs two steps: `issue` (gets the cert from Let's Encrypt) and `configure` (generates nginx config and starts the production containers). You can also run them individually:
+The script reads `SSL_DOMAINS` from `.env`, issues the certificate, generates the nginx HTTPS config, and starts the containers with SSL enabled.
+
+That runs two steps — `issue` (gets the cert from Let's Encrypt) and `configure` (generates the nginx config and starts the production containers). You can also run them individually:
 
 ```sh
-sudo ./scripts/ssl-setup.sh issue       # Issue/reissue the certificate
-./scripts/ssl-setup.sh configure        # Generate nginx config and restart containers
+# As root:
+./scripts/ssl-setup.sh issue            # Issue or expand the certificate
+./scripts/ssl-setup.sh renew            # Renew and reload nginx
+
+# As root or voldb:
+./scripts/ssl-setup.sh configure        # Generate nginx config and start with HTTPS
 ./scripts/ssl-setup.sh status           # Show certificate details and expiry
 ./scripts/ssl-setup.sh help             # Show all commands
 ```
 
+When root runs `configure`, the generated `docker/nginx/production.conf` is chowned back to `voldb` so the unprivileged account can still regenerate it later.
+
+### How Verification Works
+
+Certbot uses **webroot** mode rather than standalone mode. Instead of binding port 80 itself (which would require stopping nginx), certbot writes challenge files into `docker/certbot/` on the host. That directory is bind-mounted into the nginx container at `/var/www/certbot`, and both nginx configs serve it at `/.well-known/acme-challenge/`.
+
+The practical result is that **certificates are issued and renewed with no downtime** — containers are never stopped.
+
+The ACME location block is deliberately present in the development config (`docker/nginx/default.conf`) as well as the production one. On a first run there is no certificate yet, so the HTTPS config can't load — nginx would fail to start referencing a cert that doesn't exist. Serving challenges from the plain-HTTP config solves that bootstrap problem.
+
 ### Adding or Changing Domains
 
-Update `SSL_DOMAINS` in `.env`, then reissue and reconfigure:
+The certificate is a SAN certificate: one cert covering every domain in `SSL_DOMAINS`. Add the new domain to the list in `.env`:
+
+```
+SSL_DOMAINS=denverburners.playa.software,volunteer.denverburners.org
+```
+
+Then reissue and reconfigure, **as root**:
 
 ```sh
-sudo ./scripts/ssl-setup.sh issue
-./scripts/ssl-setup.sh configure
+cd /home/voldb/volunteers
+./scripts/ssl-setup.sh
 ```
+
+The script passes `--expand`, so certbot adds the new names to the existing certificate without prompting. The cert directory stays named after the primary (first) domain, so the nginx config doesn't need to change.
+
+Make sure DNS for every domain in the list already points at this server — certbot verifies each one and the whole request fails if any of them can't be reached.
 
 ### Automatic Certificate Renewal
 
-As root, set up a cron job for automatic renewal:
+As root, set up a cron job:
 
 ```sh
 crontab -e
@@ -187,7 +222,13 @@ Add:
 0 3 * * * /home/voldb/volunteers/scripts/ssl-setup.sh renew >> /var/log/certbot-renewal.log 2>&1
 ```
 
-The renew command only stops/starts containers if a renewal is actually needed.
+This checks daily at 3 AM. Certbot only acts when a certificate is within 30 days of expiry, and on success reloads nginx in place via a deploy hook. Nothing is stopped and no requests are dropped.
+
+Test the renewal path without waiting for expiry, **as root**:
+
+```sh
+certbot renew --dry-run
+```
 
 ## Maintenance
 

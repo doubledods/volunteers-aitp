@@ -3,12 +3,19 @@ set -euo pipefail
 
 # =============================================================================
 # SSL Setup — Issue, renew, and configure SSL certificates
-# Reads SSL_DOMAINS from .env to determine which domains to cover
+#
+# Uses certbot's webroot mode: ACME challenge files are written into a
+# directory that the running nginx container already serves, so certificates
+# can be issued and renewed with NO downtime. Containers are never stopped.
+#
+# Reads SSL_DOMAINS from .env to determine which domains to cover.
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 ENV_FILE="$PROJECT_DIR/.env"
+WEBROOT="$PROJECT_DIR/docker/certbot"
+NGINX_CONTAINER="voldb-nginx"
 
 # Colors
 RED='\033[0;31m'
@@ -35,9 +42,14 @@ if [[ -z "$SSL_DOMAINS" ]]; then
     exit 1
 fi
 
-# Parse domains: first is primary, rest are alternates
+# Parse domains: first is primary and determines the cert directory name
 IFS=',' read -ra DOMAINS <<< "$SSL_DOMAINS"
 PRIMARY_DOMAIN="${DOMAINS[0]}"
+
+CERTBOT_DOMAINS=""
+for domain in "${DOMAINS[@]}"; do
+    CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d $domain"
+done
 
 echo -e "${CYAN}SSL Configuration${NC}"
 echo -e "  Primary domain: ${GREEN}$PRIMARY_DOMAIN${NC}"
@@ -46,92 +58,138 @@ if [[ ${#DOMAINS[@]} -gt 1 ]]; then
 fi
 echo ""
 
-# Build certbot -d flags
-CERTBOT_DOMAINS=""
-for domain in "${DOMAINS[@]}"; do
-    CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d $domain"
-done
+# ---- Helpers ----
 
-# ---- Command handling ----
+require_root() {
+    if [[ $EUID -ne 0 ]]; then
+        echo -e "${RED}Error: this command needs root (certbot writes to /etc/letsencrypt).${NC}"
+        echo ""
+        echo "The project owner account is intentionally unprivileged, so run this"
+        echo "from a root shell instead:"
+        echo "  $SCRIPT_DIR/ssl-setup.sh ${1:-}"
+        exit 1
+    fi
+}
+
+compose() {
+    # Run compose from the project dir. Which user invokes this doesn't affect
+    # the container's internal user — that's fixed by the UID/GID build args.
+    cd "$PROJECT_DIR"
+    if [[ -f docker/nginx/production.conf ]]; then
+        docker compose -f docker-compose.yml -f docker-compose.production.yml "$@"
+    else
+        docker compose "$@"
+    fi
+}
+
+nginx_running() {
+    docker ps --filter "name=^${NGINX_CONTAINER}$" --filter "status=running" --quiet | grep -q .
+}
+
+reload_nginx() {
+    if nginx_running; then
+        echo "Reloading nginx..."
+        docker exec "$NGINX_CONTAINER" nginx -s reload
+    fi
+}
 
 show_help() {
     cat <<EOF
 Usage: ./scripts/ssl-setup.sh [command]
 
 Commands:
-  issue       Issue a new certificate (stops containers for standalone verification)
-  renew       Renew existing certificates
-  configure   Generate nginx production config and restart with HTTPS
-  status      Show certificate status
+  issue       Issue or expand a certificate via webroot (no downtime)
+  renew       Renew certificates and reload nginx (no downtime)
+  configure   Generate the nginx HTTPS config and start production containers
+  status      Show certificate details and expiry
 
-If no command is given, runs all steps: issue + configure.
+With no command, runs: issue + configure.
+
+Notes:
+  issue and renew must be run from a root shell — certbot writes to
+  /etc/letsencrypt. The project owner account is deliberately unprivileged
+  and has no sudo access, so log in as root (or `su -`) to run them.
+
+  configure works as either root or the project owner.
+
+  Renewal is safe to run from root's crontab — if nothing is due for
+  renewal, certbot exits without touching anything.
 EOF
 }
 
-issue_cert() {
-    echo -e "${YELLOW}Issuing certificate...${NC}"
-    echo "This requires stopping the containers so certbot can bind to port 80."
-    echo ""
+# ---- Commands ----
 
-    # Check if running as root or with sudo
-    if [[ $EUID -ne 0 ]]; then
-        echo -e "${RED}Error: Certificate issuance requires root privileges.${NC}"
-        echo "Run: sudo $0 issue"
+issue_cert() {
+    require_root "issue"
+
+    mkdir -p "$WEBROOT"
+
+    # nginx must be serving HTTP so it can answer the ACME challenge.
+    # On a first run there's no cert yet, so the HTTPS config can't load —
+    # fall back to the plain-HTTP base config, which also serves challenges.
+    if ! nginx_running; then
+        echo -e "${YELLOW}nginx isn't running — starting it to serve the challenge...${NC}"
+        cd "$PROJECT_DIR"
+        if [[ -d "/etc/letsencrypt/live/$PRIMARY_DOMAIN" && -f docker/nginx/production.conf ]]; then
+            docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
+        else
+            docker compose up -d
+        fi
+
+        # Give nginx a moment to bind before certbot probes it
+        sleep 3
+    fi
+
+    if ! nginx_running; then
+        echo -e "${RED}Error: nginx failed to start. Check: docker compose logs nginx${NC}"
         exit 1
     fi
 
-    # Stop containers if running
-    if docker compose -f "$PROJECT_DIR/docker-compose.yml" ps --quiet 2>/dev/null | grep -q .; then
-        echo "Stopping containers..."
-        OWNER="$(stat -c '%U' "$PROJECT_DIR")"
-        su - "$OWNER" -c "cd $PROJECT_DIR && docker compose -f docker-compose.yml -f docker-compose.production.yml down 2>/dev/null || docker compose down"
-    fi
+    echo -e "${YELLOW}Requesting certificate via webroot...${NC}"
+    certbot certonly \
+        --webroot -w "$WEBROOT" \
+        --expand \
+        --keep-until-expiring \
+        $CERTBOT_DOMAINS
 
-    echo "Running certbot..."
-    certbot certonly --standalone --expand $CERTBOT_DOMAINS
-
-    echo -e "${GREEN}Certificate issued successfully.${NC}"
+    echo -e "${GREEN}Certificate issued.${NC}"
 }
 
 renew_cert() {
-    echo -e "${YELLOW}Renewing certificates...${NC}"
+    require_root "renew"
 
-    if [[ $EUID -ne 0 ]]; then
-        echo -e "${RED}Error: Certificate renewal requires root privileges.${NC}"
-        echo "Run: sudo $0 renew"
-        exit 1
-    fi
+    # certbot remembers the webroot authenticator per-domain, so plain
+    # `renew` reuses it. Reload nginx only when a cert actually changed.
+    certbot renew --deploy-hook "docker exec $NGINX_CONTAINER nginx -s reload"
 
-    OWNER="$(stat -c '%U' "$PROJECT_DIR")"
-
-    certbot renew \
-        --pre-hook "su - $OWNER -c 'cd $PROJECT_DIR && docker compose -f docker-compose.yml -f docker-compose.production.yml down'" \
-        --post-hook "su - $OWNER -c 'cd $PROJECT_DIR && docker compose -f docker-compose.yml -f docker-compose.production.yml up -d'"
-
-    echo -e "${GREEN}Renewal complete.${NC}"
+    echo -e "${GREEN}Renewal check complete.${NC}"
 }
 
 configure() {
-    echo -e "${YELLOW}Generating nginx production config...${NC}"
+    if [[ ! -d "/etc/letsencrypt/live/$PRIMARY_DOMAIN" ]]; then
+        echo -e "${RED}Error: no certificate found for $PRIMARY_DOMAIN${NC}"
+        echo "Run this from a root shell: $SCRIPT_DIR/ssl-setup.sh issue"
+        exit 1
+    fi
 
+    echo -e "${YELLOW}Generating nginx HTTPS config...${NC}"
     export SSL_DOMAIN="$PRIMARY_DOMAIN"
     envsubst '${SSL_DOMAIN}' \
         < "$PROJECT_DIR/docker/nginx/production.conf.template" \
         > "$PROJECT_DIR/docker/nginx/production.conf"
 
+    # If root generated the file, hand ownership back to the project owner so
+    # the unprivileged account can regenerate it later without needing root.
+    if [[ $EUID -eq 0 ]]; then
+        OWNER="$(stat -c '%U:%G' "$PROJECT_DIR")"
+        chown "$OWNER" "$PROJECT_DIR/docker/nginx/production.conf"
+    fi
+
     echo -e "  Written to: ${GREEN}docker/nginx/production.conf${NC}"
     echo ""
 
     echo -e "${YELLOW}Starting containers with HTTPS...${NC}"
-    cd "$PROJECT_DIR"
-
-    # Determine the right user to run docker compose
-    OWNER="$(stat -c '%U' "$PROJECT_DIR")"
-    if [[ "$(whoami)" == "$OWNER" ]]; then
-        docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
-    else
-        su - "$OWNER" -c "cd $PROJECT_DIR && docker compose -f docker-compose.yml -f docker-compose.production.yml up -d"
-    fi
+    compose up -d
 
     echo ""
     echo -e "${GREEN}HTTPS is live!${NC}"
@@ -145,10 +203,11 @@ show_status() {
     if [[ -d "/etc/letsencrypt/live/$PRIMARY_DOMAIN" ]]; then
         echo -e "  Cert directory: ${GREEN}/etc/letsencrypt/live/$PRIMARY_DOMAIN${NC}"
         openssl x509 -in "/etc/letsencrypt/live/$PRIMARY_DOMAIN/fullchain.pem" -noout \
-            -subject -enddate -ext subjectAltName 2>/dev/null || echo -e "  ${RED}Could not read certificate (need root?)${NC}"
+            -subject -enddate -ext subjectAltName 2>/dev/null \
+            || echo -e "  ${RED}Could not read certificate (need root?)${NC}"
     else
         echo -e "  ${RED}No certificate found for $PRIMARY_DOMAIN${NC}"
-        echo "  Run: sudo ./scripts/ssl-setup.sh issue"
+        echo "  Run this from a root shell: $SCRIPT_DIR/ssl-setup.sh issue"
     fi
 }
 

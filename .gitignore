@@ -6,3 +6,7 @@ main.css
 npm-debug.log
 .env
 docker/nginx/production.conf
+
+# ACME challenge files written by certbot at runtime
+docker/certbot/*
+!docker/certbot/.gitkeep
