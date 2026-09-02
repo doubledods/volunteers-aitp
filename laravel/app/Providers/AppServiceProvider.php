@@ -18,6 +18,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        \URL::forceScheme('https'); 
         Validator::extend('account', function($attribute, $value, $parameters)
         {
             $user = User::where('name', Input::get('name'))->orWhere('email', Input::get('name'))->first();
