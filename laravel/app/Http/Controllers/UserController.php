@@ -22,6 +22,16 @@ class UserController extends Controller
     // Create a new user
     public function create(UserRequest $request)
     {
+        // adding secret invite logic
+        $expected = env('REGISTER_INVITE');
+        $given = trim((string) $request->get('invite'));
+
+        if ($expected === null || $expected === '' || !hash_equals($expected, $given)) {
+            return redirect('/register')
+                ->withInput($request->except('password', 'password_confirmation'))
+                ->withErrors(['invite' => 'That invite code is not valid.']);
+        }
+
         // Create user based on post input
         $input = $request->all();
         $input['password'] = bcrypt($input['password']);

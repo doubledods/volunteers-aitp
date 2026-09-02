@@ -5,6 +5,7 @@
     <hr>
 
     {!! Form::open() !!}
+        @include('partials/form/text', ['name' => 'invite', 'label' => 'Invite code', 'placeholder' => 'Secret activation code', 'help' => 'Check your email invite for this code.'])
         @include('partials/form/text', ['name' => 'name', 'label' => 'Username', 'placeholder' => 'Your login name'])
         @include('partials/form/text', ['name' => 'email', 'label' => 'Email address', 'placeholder' => 'Your email'])
         @include('partials/form/password', ['name' => 'password', 'label' => 'Password', 'placeholder' => 'A strong password'])
