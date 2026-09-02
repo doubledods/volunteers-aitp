@@ -40,6 +40,7 @@ class UserRequest extends Request
                     'name' => 'required|min:3|unique:users',
                     'email' => 'required|email|unique:users',
                     'password' => 'required|min:8|confirmed',
+                    'invite' => 'required',
                 ];
             break;
 
