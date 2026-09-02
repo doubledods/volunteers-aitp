@@ -30,6 +30,93 @@ section.content {
     display: block;
 }
 
+// navbar stuff aitp
+
+.navbar.navbar-inverse.navbar-fixed-top {
+    background-image: linear-gradient(
+        to bottom,
+        #0a3d0a 0%,
+        #003300 55%,
+        #001a00 100%
+    ) !important;
+    background-color: #003300 !important;
+    border-color: #001a00 !important;
+    filter: none !important;
+}
+
+.navbar-inverse .navbar-nav > .active > a,
+.navbar-inverse .navbar-nav > .open > a,
+.navbar-inverse .navbar-nav > .active > a:hover,
+.navbar-inverse .navbar-nav > .open > a:hover {
+    background-image: none !important;
+    background-color: #001a00 !important;
+}
+
+.navbar-inverse {
+    .navbar-brand,
+    .navbar-text,
+    .navbar-nav > li > a {
+        color: #e8eee8 !important;
+    }
+
+    .navbar-brand:hover,
+    .navbar-brand:focus,
+    .navbar-nav > li > a:hover,
+    .navbar-nav > li > a:focus {
+        color: #ffffff !important;
+    }
+
+    .navbar-nav > .active > a,
+    .navbar-nav > .open > a,
+    .navbar-nav > .active > a:hover,
+    .navbar-nav > .open > a:hover {
+        color: #ffffff !important;
+        background-image: none !important;
+        background-color: #001a00 !important;
+    }
+
+    .hamburger {
+        color: #e8eee8;
+    }
+}
+
+// buttons aitp
+
+.btn-primary {
+    background-image: none !important;
+    background-color: #003300 !important;
+    border-color: #001a00 !important;
+    color: #e8eee8 !important;
+    text-shadow: none !important;
+    filter: none !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary.focus {
+    background-image: none !important;
+    background-color: #0a4a0a !important;
+    border-color: #003300 !important;
+    color: #ffffff !important;
+}
+
+.btn-primary:active,
+.btn-primary.active,
+.open > .dropdown-toggle.btn-primary {
+    background-image: none !important;
+    background-color: #001a00 !important;
+    border-color: #000f00 !important;
+    color: #ffffff !important;
+}
+
+.btn-primary.disabled,
+.btn-primary[disabled] {
+    background-color: #2a4a2a !important;
+    border-color: #003300 !important;
+}
+
+// end button edits
+
 .footer {
     font-size: 80%;
     margin-bottom: 1em;
