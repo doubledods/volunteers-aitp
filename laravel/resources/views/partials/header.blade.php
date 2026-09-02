@@ -5,8 +5,8 @@
         </div>
 
         <div class="navbar-header">
-            <a class="pull-left" href="/"><img style="padding:5px" src="/img/apo-logo-particle.png"></a>
-            <a class="navbar-brand" href="/">VolunteerDB</a>
+            <a class="pull-left" href="/"><img style="padding:8px 8px 4px 0; height:48px" src="/img/aitp-logo-square.png" alt="AITP"></a>
+            <a class="navbar-brand" href="/">AITP Volunteers</a>
         </div>
 
         <div class="collapse navbar-collapse">
