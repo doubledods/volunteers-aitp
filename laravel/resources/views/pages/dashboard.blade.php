@@ -4,8 +4,8 @@
     <h1>
         Your Dashboard
 
-        <div class="pull-right" style="font-size:0.4em; margin-top: 1.4em;">
-            User Permissions:
+        <div class="user-permissions">
+            Role:
 
             <b>{{ implode(", ", Auth::user()->getRoleNames(['format' => 'ucwords'])) }}</b>
         </div>
