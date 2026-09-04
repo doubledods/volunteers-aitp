@@ -11,13 +11,16 @@ if(old($name))
 
 @section('html')
     <input type="text"
-            class="form-control"
-            name="{{ $name }}"
-            id="{{ $name }}-field"
-            placeholder="{{ $placeholder or '' }}"
-            value="{{ $value or '' }}"
-            @if(isset($limit))
-                maxlength="{{ $limit }}"
-            @endif
-            >
+        class="form-control"
+        name="{{ $name }}"
+        id="{{ $name }}-field"
+        placeholder="{{ $placeholder or '' }}"
+        value="{{ $value or '' }}"
+        @if(isset($autocapitalize))
+            autocapitalize="{{ $autocapitalize }}"
+        @endif
+        @if(isset($limit))
+            maxlength="{{ $limit }}"
+        @endif
+        >
 @overwrite
