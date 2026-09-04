@@ -6,7 +6,7 @@
 
         <div class="navbar-header">
             <a class="pull-left" href="/"><img style="padding:8px 4px 4px 4px; height:48px" src="/img/aitp-logo-square.png" alt="AITP"></a>
-            <a class="navbar-brand" href="/">AITP Volunteers</a>
+            <a class="navbar-brand" href="/">Volunteers</a>
         </div>
 
         <div class="collapse navbar-collapse">

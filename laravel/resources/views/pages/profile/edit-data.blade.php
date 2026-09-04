@@ -17,7 +17,7 @@ use App\Helpers;
         [
             'name' => 'full_name',
             'label' => 'Full Name',
-            'placeholder' => 'Your name in the Default World',
+            'placeholder' => 'Your real name',
             'help' => "Required. Your full name is used for reporting and ticketing purposes",
             'value' => (is_null($user->data)) ? '' : $user->data->full_name
         ])
@@ -25,8 +25,8 @@ use App\Helpers;
         @include('partials/form/text',
         [
             'name' => 'burner_name',
-            'label' => 'Burner Name',
-            'placeholder' => 'Your name on the Playa',
+            'label' => 'Display Name',
+            'placeholder' => 'Name you want to go by',
             'help' => "This name will be shown to other users when you sign up for a shift",
             'value' => Helpers::displayName($user)
         ])
@@ -36,7 +36,7 @@ use App\Helpers;
             'name' => 'camp',
             'label' => 'Your Camp',
             'placeholder' => 'Camp Creative Name',
-            'help' => "Enter your camp name if you have one, or 'open camping' if not",
+            'help' => "Enter your camp name, or the name of your group (optional)",
             'value' => (is_null($user->data)) ? '' : $user->data->camp
         ])
 
