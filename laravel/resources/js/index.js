@@ -8,3 +8,4 @@ require('./ui/preview');
 require('./ui/tooltips');
 require('./ui/userSearch');
 require('./admin');
+require('./ui/preventDoubleSubmit');   // added this
