@@ -38,6 +38,8 @@ class EventServiceProvider extends ServiceProvider
         [
             'App\Listeners\SendAdminRemovedShift',
             'App\Listeners\SendUserShiftConfirmation',
+            'App\Listeners\SendAdminNewShiftSignup',   // added
+            'App\Listeners\SendAdminShiftReleased',    // added
         ],
     ];
 
