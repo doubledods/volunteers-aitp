@@ -150,6 +150,32 @@ class AdminController extends Controller
         return redirect('/user/' . $user->id );
     }
 
+
+    // Show a confirmation page before deleting a user
+    function userDeleteForm(User $user)
+    {
+        return view('pages/admin/user-delete', compact('user'));
+    }
+
+    // Delete a user
+    function userDelete(User $user, Request $request)
+    {
+        $email = $user->email;
+
+        try
+        {
+            $user->delete();
+        }
+        catch (\Illuminate\Database\QueryException $exception)
+        {
+            $request->session()->flash('error', 'Unable to delete ' . $email . ' — they are still referenced elsewhere in the system (for example, as the reviewer on a file someone else uploaded). Reassign or clear that reference first.');
+            return redirect('/user/' . $user->id);
+        }
+
+        $request->session()->flash('success', $email . ' has been deleted.');
+        return redirect('/users');
+    }
+
     // List of uploaded files
     function uploadList()
     {

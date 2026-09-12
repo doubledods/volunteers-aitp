@@ -70,6 +70,7 @@ use App\Helpers;
         </div>
         <hr>
     <a href="/user/{{$user->id}}/edit" class="btn btn btn-primary">Edit User</a>
+    <a href="/user/{{$user->id}}/delete" class="btn btn-danger">Delete User</a>
     </div>
 
     @if($user->uploads->count())

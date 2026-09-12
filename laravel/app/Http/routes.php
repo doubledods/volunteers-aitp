@@ -114,6 +114,9 @@ Route::get('/users', 'AdminController@userList');
 Route::get('/user/{user}', 'AdminController@userProfile');
 Route::post('/user/{user}/update', 'AdminController@userProfileUpdate');
 
+Route::get('/user/{user}/delete', 'AdminController@userDeleteForm');   // added
+Route::post('/user/{user}/delete', 'AdminController@userDelete');       // added
+
 Route::get('/uploads', 'AdminController@uploadList');
 Route::post('/upload/{upload}/edit', 'AdminController@uploadEdit');
 
