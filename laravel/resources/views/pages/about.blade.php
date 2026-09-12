@@ -1,7 +1,15 @@
 @extends('app')
 
 @section('content')
-    <h1>About the Volunteer Database</h1>
+    <h1>Anime in the Park Volunteer Portal</h1>
+
+    <p>This website is where you can sign up for volunteer shifts at <a href="https://animeinthepark.com/">Anime in the Park</a> events.</p>
+
+    <p>You will need a secret code to make an account</p>
+
+    <p>Please <a href="https://animeinthepark.com/register/volunteer/">register</a> as a volunteer on our website, and wait for approval.</p>
+
+    <h1>About the Volunteer Database Platform</h1>
     <hr>
 
     <div class="image-caption pull-right">
