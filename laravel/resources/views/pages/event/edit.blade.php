@@ -18,6 +18,8 @@
             'selected' => $event->featured ? ['yes'] : []
         ])
 
+        @include('partials/event/timegrid-settings')
+
         <button type="submit" class="btn btn-success">Save Changes</button>
         <a href="/event/{{ $event->id }}" class="btn btn-primary">Cancel</a>
 

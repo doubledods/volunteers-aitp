@@ -9,10 +9,15 @@
 }
 
 .timegrid {
-    .group {
-        width: 50%;
-        padding: 0;
-        margin: 0;
+    // One row of equally sized hour cells. The number of cells depends on the event's time grid settings.
+    .hours {
+        display: flex;
+        height: 100%;
+    }
+
+    .time {
+        flex: 1 1 0;
+        min-width: 0;
     }
 
     .times {
@@ -29,13 +34,8 @@
         right: 0;
         height: 5.9em;
 
-        .group {
-            height: 100%;
-        }
-
         .time {
             border-left: 1px solid #ccc;
-            height: 100%;
             margin-top: 0.2em;
         }
     }
@@ -76,12 +76,9 @@
 }
 
 .days {
+    // On desktop, slots are positioned in pixels by timegrid.js so they line up with the hour lines
     .slot-wrap {
         overflow: hidden;
-
-        @media (min-width: 992px) {
-            margin-left: -1.7em;
-        }
     }
 }
 

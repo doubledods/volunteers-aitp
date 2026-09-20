@@ -288,6 +288,43 @@ function decorateTime(time)
     return `${hours.toString()}:${_.padStart(minutes,2,'0')} ${ampm}`;
 }
 
+// Format an hour of the day (0-24) the same way the event page does, e.g. "12 am", "6 pm"
+function hourLabel(hour)
+{
+    hour = hour % 24;
+    const display = hour % 12 || 12;
+    return `${display} ${hour < 12 ? 'am' : 'pm'}`;
+}
+
+// Work out which hours the preview grid should show.
+// The page provides the event's range; the preview widens it if the new shift falls outside it.
+function previewRange(start, lastSlot)
+{
+    const container = document.querySelector('form.edit-schedule .preview');
+    let gridStart = parseInt(container && container.getAttribute('data-grid-start'), 10);
+    let gridEnd = parseInt(container && container.getAttribute('data-grid-end'), 10);
+
+    if(isNaN(gridStart)) gridStart = 0;
+    if(isNaN(gridEnd) || gridEnd <= gridStart) gridEnd = 24;
+
+    if(typeof start === 'number' && !isNaN(start))
+    {
+        gridStart = Math.min(gridStart, Math.floor(start / 3600));
+    }
+
+    // Only the slots that actually fit are drawn, so stretch to the end of the last one
+    if(lastSlot)
+    {
+        const lastEnd = parseTime(lastSlot.start_date) + parseTime(lastSlot.duration);
+        gridEnd = Math.max(gridEnd, Math.ceil(lastEnd / 3600));
+    }
+
+    gridStart = Math.max(0, Math.min(23, gridStart));
+    gridEnd = Math.max(gridStart + 1, Math.min(24, gridEnd));
+
+    return {start: gridStart, end: gridEnd};
+}
+
 function makePreview(data)
 {
     // @todo allow for shifts to wrap into the next day
@@ -334,9 +371,15 @@ function makePreview(data)
         });
     }, []);
 
+    // Use the event's time grid, stretched to fit the shift being previewed
+    const range = previewRange(start, slots.length ? slots[slots.length - 1] : null);
+
     return grid({
         name: 'Shift Preview',
-        days
+        days,
+        gridStart: range.start,
+        gridEnd: range.end,
+        hourLabel
     });
 
 }

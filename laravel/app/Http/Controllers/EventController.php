@@ -124,6 +124,15 @@ class EventController extends Controller
             $input['featured'] = false;
         }
 
+        // The custom time grid option is also a checkbox
+        $input['custom_timegrid'] = isset($input['custom_timegrid']) && is_array($input['custom_timegrid']) && $input['custom_timegrid'][0] == 'yes';
+
+        // An empty time grid hour means "automatic", which is stored as null
+        foreach(['timegrid_start_hour', 'timegrid_end_hour'] as $field)
+        {
+            $input[$field] = (isset($input[$field]) && $input[$field] !== '') ? (int)$input[$field] : null;
+        }
+
         $event->update($input);
 
         if($request->hasFile('image'))
@@ -190,6 +199,9 @@ class EventController extends Controller
             'description' => $event->description,
             'start_date' => $startDate->addSeconds($difference)->format('Y-m-d'),
             'end_date' => $endDate->addSeconds($difference)->format('Y-m-d'),
+            'custom_timegrid' => $event->custom_timegrid,
+            'timegrid_start_hour' => $event->timegrid_start_hour,
+            'timegrid_end_hour' => $event->timegrid_end_hour,
         ]);
 
         // Add the image manually because it's not automatically fillable

@@ -164,7 +164,7 @@ foreach($schedule->event->days() as $day)
         </div>
 
         <div class="col-md-12" style="margin-top: 1em">
-            <div class='preview hidden'></div>
+            <div class='preview hidden' data-grid-start="{{ $schedule->event->timegridRange()->start }}" data-grid-end="{{ $schedule->event->timegridRange()->end }}"></div>
         </div>
     {!! Form::close() !!}
 @endsection
