@@ -104,7 +104,7 @@ class SlotController extends Controller
             $slot->user_id = Auth::user()->id;
             $slot->save();
 
-            event(new SlotChanged($slot, ['status' => 'taken', 'name' => Auth::user()->name, 'email' => Auth::user()->email]));
+            event(new SlotChanged($slot, ['status' => 'taken', 'name' => Auth::user()->name, 'email' => Auth::user()->email], Auth::user()));   // changed: added Auth::user() at the end
             $request->session()->flash('success', 'You signed up for a volunteer shift.');
 
             // If a password was used
@@ -140,10 +140,12 @@ class SlotController extends Controller
         {
             if(!is_null($slot->user) && $slot->user->id === Auth::user()->id)
             {
+                $volunteer = $slot->user;  // new: grab them BEFORE nulling
+
                 $slot->user_id = null;
                 $slot->save();
 
-                event(new SlotChanged($slot, ['status' => 'released']));
+                event(new SlotChanged($slot, ['status' => 'released'], $volunteer));   // changed
                 $request->session()->flash('success', 'You are no longer volunteering for your shift.');
             }
             else
@@ -167,11 +169,12 @@ class SlotController extends Controller
     {
         if(!is_null($slot->user))
         {
-            $username = Helpers::displayName($slot->user);
+            $volunteer = $slot->user;       // new
+            $username = Helpers::displayName($volunteer);    // changed: was $slot->user
 
             $slot->user_id = null;
             $slot->save();
-            event(new SlotChanged($slot, ['status' => 'released', 'admin_released' => true]));
+            event(new SlotChanged($slot, ['status' => 'released', 'admin_released' => true], $volunteer));   // changed
             $request->session()->flash('success', $username.' is removed!!');
         }
         else
@@ -191,7 +194,7 @@ class SlotController extends Controller
 
             $slot->user_id=$user->id;
             $slot->save();
-            event(new SlotChanged($slot, ['status' => 'taken', 'admin_assigned' => true, 'name' => $user->name, 'email' => $user->email]));
+            event(new SlotChanged($slot, ['status' => 'taken', 'admin_assigned' => true, 'name' => $user->name, 'email' => $user->email], $user));   // changed: added $user at the end
             $request->session()->flash('success', 'You added '.$username.' to this shift');
         }
         return redirect('/event/'.$slot->event->id);

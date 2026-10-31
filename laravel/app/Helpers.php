@@ -59,4 +59,33 @@ class Helpers
             app('request')->session()->flash('warning', "Unable to send email, SMTP error. Please notify the administrator of this volunteer database.");
         }
     }
+    /**
+     * Everything an admin needs to match a volunteer to an outside record
+     * (NocoDB, a spreadsheet, etc). Used by the admin alert emails.
+     */
+    public static function volunteerDetails($user)
+    {
+        if ($user === null)
+        {
+            return [
+                'volunteer_id' => 'unknown',
+                'volunteer_username' => 'unknown',
+                'volunteer_email' => 'unknown',
+                'volunteer_burner_name' => 'unknown',
+                'volunteer_display_name' => 'Unknown volunteer',
+                'volunteer_profile_url' => null,
+            ];
+        }
+
+        $burner_name = optional($user->data)->burner_name;
+
+        return [
+            'volunteer_id' => $user->id,
+            'volunteer_username' => $user->name,
+            'volunteer_email' => $user->email,
+            'volunteer_burner_name' => (trim((string) $burner_name) !== '') ? $burner_name : '(none)',
+            'volunteer_display_name' => self::displayName($user),
+            'volunteer_profile_url' => url('/user/' . $user->id),
+        ];
+    }
 }

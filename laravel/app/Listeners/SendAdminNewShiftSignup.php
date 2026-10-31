@@ -21,23 +21,31 @@ class SendAdminNewShiftSignup
             return;
         }
 
+        $admin_email = config('mail.admin_alert_email');
+
+        if (!$admin_email)
+        {
+            return;
+        }
+
         $slot = $event->slot;
-        $volunteer_name = $event->change['name'];
+        $volunteer = Helpers::volunteerDetails($event->volunteer());
+
         $shift_name = $slot->schedule->shift->name;
         $event_name = $slot->event->name;
         $department_name = $slot->department->name;
         $start_date = date('l M d', strtotime($slot->start_date));
         $start_time = date('h:i a', strtotime($slot->start_time . $slot->start_date));
         $end_time = date('h:i a', strtotime($slot->end_time . $slot->start_date));
-        $admin_assigned = isset($event->change['admin_assigned']) && $event->change['admin_assigned'];
+        $admin_assigned = !empty($event->change['admin_assigned']);
 
-        $admin_email = config('mail.admin_alert_email');
+        $event_data = array_merge($volunteer, compact('event_name', 'department_name', 'shift_name', 'start_date', 'start_time', 'end_time', 'admin_assigned'));
 
-        $event_data = compact('volunteer_name', 'event_name', 'department_name', 'shift_name', 'start_date', 'start_time', 'end_time', 'admin_assigned');
+        $subject = 'Shift signup: ' . $volunteer['volunteer_display_name'] . ' <' . $volunteer['volunteer_email'] . '> - ' . $shift_name;
 
-        Helpers::sendMail('emails/admin-new-signup', $event_data, function ($message) use ($admin_email, $shift_name, $volunteer_name)
+        Helpers::sendMail('emails/admin-new-signup', $event_data, function ($message) use ($admin_email, $subject)
         {
-            $message->to($admin_email)->subject('Shift signup: ' . $volunteer_name . ' - ' . $shift_name);
+            $message->to($admin_email)->subject($subject);
         });
     }
 }

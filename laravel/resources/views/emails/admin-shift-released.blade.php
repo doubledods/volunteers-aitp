@@ -1,10 +1,13 @@
 <h1>Shift released</h1>
 
 <p>
-    <b>{{ $volunteer_name }}</b> is no longer scheduled for this shift
+    <b>{{ $volunteer_display_name }}</b> is no longer scheduled for this shift
     ({{ $removed_by_admin ? 'removed by an admin' : 'released by the volunteer' }}).
 </p>
 
+@include('emails.partials.volunteer-details')
+
+<h3>Shift</h3>
 <ul>
     <li>Event: <b>{{ $event_name }}</b></li>
     <li>Department: <b>{{ $department_name }}</b></li>

@@ -4,25 +4,13 @@ namespace App\Listeners;
 
 use App\Helpers;
 use App\Events\UserRegistered;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Contracts\Queue\ShouldQueue;
 
 use App\Models\User;
 
 class SendAdminWelcome
 {
     /**
-     * Create the event listener.
-     *
-     * @return void
-     */
-    public function __construct()
-    {
-        //
-    }
-
-    /**
-     * Send a user registered email to all admins
+     * Send a user registered email to the admin alert address
      *
      * @param  UserRegistered  $event
      * @return void
@@ -31,12 +19,26 @@ class SendAdminWelcome
     {
         $user = $event->user;
 
-        // TODO: Options to choose which admins to notify
-        $admin = User::where('id', 1)->first();
+        // Send to the same address as the shift alerts (ADMIN_ALERT_EMAIL).
+        // Fall back to the first account only if that isn't configured.
+        $admin_email = config('mail.admin_alert_email');
 
-        Helpers::sendMail('emails/admin-welcome', compact('user'), function ($message) use ($admin)
+        if (!$admin_email)
         {
-            $message->to($admin->email, $admin->name)->subject('New user registered!');
+            $admin = User::find(1);
+            $admin_email = $admin ? $admin->email : null;
+        }
+
+        if (!$admin_email)
+        {
+            return;
+        }
+
+        $subject = 'New user registered: ' . $user->name . ' <' . $user->email . '>';
+
+        Helpers::sendMail('emails/admin-welcome', compact('user'), function ($message) use ($admin_email, $subject)
+        {
+            $message->to($admin_email)->subject($subject);
         });
     }
 }

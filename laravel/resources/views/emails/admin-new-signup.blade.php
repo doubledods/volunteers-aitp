@@ -1,9 +1,12 @@
 <h1>New shift signup</h1>
 
 <p>
-    <b>{{ $volunteer_name }}</b> {{ $admin_assigned ? 'was assigned to' : 'signed up for' }} a shift.
+    <b>{{ $volunteer_display_name }}</b> {{ $admin_assigned ? 'was assigned to' : 'signed up for' }} a shift.
 </p>
 
+@include('emails.partials.volunteer-details')
+
+<h3>Shift</h3>
 <ul>
     <li>Event: <b>{{ $event_name }}</b></li>
     <li>Department: <b>{{ $department_name }}</b></li>
