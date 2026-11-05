@@ -120,6 +120,15 @@ Route::post('/user/{user}/delete', 'AdminController@userDelete');       // added
 Route::get('/uploads', 'AdminController@uploadList');
 Route::post('/upload/{upload}/edit', 'AdminController@uploadEdit');
 
+Route::get('/roles', 'RoleController@index');
+Route::post('/roles', 'RoleController@create');
+Route::post('/role/{role}/delete', 'RoleController@delete');
+
+Route::get('/approvals', 'ApprovalController@index');
+Route::post('/approvals/tag-list', 'ApprovalController@tagList');
+Route::post('/approvals/tag', 'ApprovalController@tagUser');
+Route::post('/approvals/untag', 'ApprovalController@untagUser');
+
 Route::get('/reports', 'ReportController@reportList');
 Route::post('/report/users', 'ReportController@searchUsers');
 Route::post('/report/departments', 'ReportController@getDepartments');

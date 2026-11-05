@@ -79,7 +79,18 @@ class AdminController extends Controller
             $roleNames[$role->name] = $role->name;
         }
 
-        return view('pages/admin/user-profile', compact('user', 'roleNames'));
+        // Shifts this user is signed up for (same lists as their own "Your Shifts" page)
+        $today = date('Y-m-d');
+
+        $upcoming = $user->slots()->where('start_date', '>=', $today)
+                                    ->orderBy('start_date', 'asc')
+                                    ->orderBy('start_time', 'asc')->get();
+
+        $past = $user->slots()->where('start_date', '<', $today)
+                                ->orderBy('start_date', 'desc')
+                                ->orderBy('start_time', 'desc')->get();
+
+        return view('pages/admin/user-profile', compact('user', 'roleNames', 'upcoming', 'past'));
     }
 
     // View an individual user profile

@@ -20,6 +20,8 @@
                             <li><a href="/event">New Event</a></li>
                             <li><a href="/users">Users</a></li>
                             <li><a href="/uploads">Uploads</a></li>
+                            <li><a href="/roles">Roles</a></li>
+                            <li><a href="/approvals">Approvals</a></li>
                         @endif
 
                         @if(Auth::user()->hasRole('admin') || Auth::user()->hasRole('department-lead'))

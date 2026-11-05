@@ -73,6 +73,23 @@ use App\Helpers;
     <a href="/user/{{$user->id}}/delete" class="btn btn-danger">Delete User</a>
     </div>
 
+    <hr>
+    <h2>Shifts</h2>
+
+    @if(isset($upcoming) && $upcoming->count())
+        <h3>Upcoming</h3>
+        @include('pages.admin.partials.user-shifts-table', ['slots' => $upcoming])
+    @endif
+
+    @if(isset($past) && $past->count())
+        <h3>Past</h3>
+        @include('pages.admin.partials.user-shifts-table', ['slots' => $past])
+    @endif
+
+    @if(!isset($upcoming) || (!$upcoming->count() && !$past->count()))
+        <p>This user hasn't signed up for any shifts.</p>
+    @endif
+
     @if($user->uploads->count())
         <hr>
         <h2>Uploaded Files</h2>
