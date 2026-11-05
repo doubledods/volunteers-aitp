@@ -29,7 +29,18 @@ class ProfileController extends Controller
     function view()
     {
         $user = Auth::user();
-        return view('pages/profile/view', compact('user'));
+        // Shifts this user is signed up for (same lists as the "Your Shifts" menu page)
+        $today = Carbon::now()->format('Y-m-d');
+
+        $upcoming = $user->slots()->where('start_date', '>=', $today)
+                                    ->orderBy('start_date', 'asc')
+                                    ->orderBy('start_time', 'asc')->get();
+
+        $past = $user->slots()->where('start_date', '<', $today)
+                                ->orderBy('start_date', 'desc')
+                                ->orderBy('start_time', 'desc')->get();
+
+        return view('pages/profile/view', compact('user', 'upcoming', 'past'));
     }
 
     // View a list of your shifts

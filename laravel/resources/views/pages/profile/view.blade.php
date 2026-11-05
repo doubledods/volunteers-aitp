@@ -7,6 +7,11 @@ use App\Helpers;
 @extends('app')
 
 @section('content')
+    <h1>Next Steps</h1>
+    <p>Thank you for registering! To sign up for a shift, please visit the home page and choose an event.</p>
+    <p><a href="/">Browse upcoming events</a></p>
+    <hr>
+
     <h1>
         Your Profile
 
@@ -108,4 +113,21 @@ use App\Helpers;
     @endif
 
     <a href="/profile/upload" class="btn btn-primary">Upload a File</a>
+
+    <hr>
+    <h1>Your Shifts</h1>
+
+    @if(isset($upcoming) && $upcoming->count())
+        <h3>Upcoming</h3>
+        @include('pages.profile.partials.shifts-table', ['slots' => $upcoming])
+    @endif
+
+    @if(isset($past) && $past->count())
+        <h3>Past</h3>
+        @include('pages.profile.partials.shifts-table', ['slots' => $past])
+    @endif
+
+    @if(!isset($upcoming) || (!$upcoming->count() && !$past->count()))
+        <p>You haven't signed up for any shifts yet. When you do, they will be listed here.</p>
+    @endif
 @endsection

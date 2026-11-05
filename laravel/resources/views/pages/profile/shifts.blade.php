@@ -4,6 +4,7 @@
 
 @section('content')
     <h1>Shifts You've Volunteered For</h1>
+    <p><em>To sign up for a shift, visit the home page and choose an event.</em><br /><a href="/">Browse upcoming events</a></p>
     <hr>
 
     @if($upcoming->count())
