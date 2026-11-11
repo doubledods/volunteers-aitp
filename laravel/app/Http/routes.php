@@ -15,6 +15,9 @@
 Route::get('/', 'PageController@home');
 Route::get('/about', 'PageController@view');
 
+// Public roster pages (no login required)
+Route::get('/roster', 'RosterController@index');
+Route::get('/roster/{slug}', 'RosterController@show');
 
 // User authentication routes
 Route::get('/register', 'PageController@view');
