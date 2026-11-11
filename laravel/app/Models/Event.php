@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 use App\Models\Schedule;
 
@@ -29,6 +30,50 @@ class Event extends Model
             $model->departments()->delete();
             $model->shifts()->delete();
         });
+
+        // Give every new event a URL slug (also covers cloned events)
+        static::creating(function($model) {
+            if(empty($model->slug))
+            {
+                $model->slug = self::uniqueSlug($model->name, $model->start_date);
+            }
+        });
+    }
+
+    // Build a unique, URL-safe slug from an event name
+    public static function uniqueSlug($name, $startDate = null)
+    {
+        $base = Str::slug($name);
+
+        // Never all digits: /roster/123 is reserved for "event id 123"
+        if($base === '' || ctype_digit($base))
+        {
+            $base = trim('event-' . $base, '-');
+        }
+
+        $slug = $base;
+
+        // Same name as an existing event? Add the start year, then a counter
+        if(self::slugTaken($slug) && $startDate)
+        {
+            $slug = $base . '-' . substr((string)$startDate, 0, 4);
+        }
+
+        $candidate = $slug;
+        $counter = 2;
+
+        while(self::slugTaken($candidate))
+        {
+            $candidate = $slug . '-' . $counter++;
+        }
+
+        return $candidate;
+    }
+
+    // Include soft-deleted events so a deleted event's slug is never reused
+    private static function slugTaken($slug)
+    {
+        return self::withTrashed()->where('slug', $slug)->exists();
     }
 
     // Helper functions to select events by date
