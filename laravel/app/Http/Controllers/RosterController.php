@@ -86,6 +86,7 @@ class RosterController extends Controller
                 $shifts[] =
                 [
                     'name' => $schedule->shift ? $schedule->shift->name : 'Shift',
+                    'sort' => $people[0]['sort'], // earliest person in this shift (the list is already sorted)
                     'people' => $people,
                 ];
             }
@@ -97,7 +98,9 @@ class RosterController extends Controller
 
             usort($shifts, function($a, $b)
             {
-                return strcasecmp($a['name'], $b['name']);
+                $cmp = strcmp($a['sort'], $b['sort']);
+
+                return $cmp !== 0 ? $cmp : strcasecmp($a['name'], $b['name']);
             });
 
             $roster[] = ['name' => $department->name, 'shifts' => $shifts];
